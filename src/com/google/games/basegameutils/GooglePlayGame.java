@@ -16,12 +16,11 @@
 
 package com.google.games.basegameutils;
 
-import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
+import android.support.v4.app.FragmentActivity;
 
 import com.google.android.gms.appstate.AppStateClient;
-import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.games.GamesClient;
 import com.google.android.gms.plus.PlusClient;
 
@@ -37,147 +36,154 @@ import com.google.android.gms.plus.PlusClient;
  * PlusClient and GamesClient, use BaseGameActivity(CLIENT_GAMES | CLIENT_PLUS).
  * To request all available clients, use BaseGameActivity(CLIENT_ALL).
  * Alternatively, you can also specify the requested clients via
- * 
- * @link{#setRequestedClients , but you must do so before @link{#onCreate} gets
- *                            called, otherwise the call will have no effect.
- * 
+ * @link{#setRequestedClients}, but you must do so before @link{#onCreate}
+ * gets called, otherwise the call will have no effect.
+ *
  * @author Bruno Oliveira (Google)
  */
-public abstract class GooglePlayGame extends Activity implements
-		GameHelper.GameHelperListener {
+public abstract class GooglePlayGame extends FragmentActivity implements
+        GameHelper.GameHelperListener {
 
-	// The game helper object. This class is mainly a wrapper around this
-	// object.
-	protected GameHelper mHelper;
+    // The game helper object. This class is mainly a wrapper around this object.
+    protected GameHelper mHelper;
 
-	// We expose these constants here because we don't want users of this class
-	// to have to know about GameHelper at all.
-	public static final int CLIENT_GAMES = GameHelper.CLIENT_GAMES;
-	public static final int CLIENT_APPSTATE = GameHelper.CLIENT_APPSTATE;
-	public static final int CLIENT_PLUS = GameHelper.CLIENT_PLUS;
-	public static final int CLIENT_ALL = GameHelper.CLIENT_ALL;
+    // We expose these constants here because we don't want users of this class
+    // to have to know about GameHelper at all.
+    public static final int CLIENT_GAMES = GameHelper.CLIENT_GAMES;
+    public static final int CLIENT_APPSTATE = GameHelper.CLIENT_APPSTATE;
+    public static final int CLIENT_PLUS = GameHelper.CLIENT_PLUS;
+    public static final int CLIENT_ALL = GameHelper.CLIENT_ALL;
 
-	// Requested clients. By default, that's just the games client.
-	protected int mRequestedClients = CLIENT_GAMES;
+    // Requested clients. By default, that's just the games client.
+    protected int mRequestedClients = CLIENT_GAMES;
 
-	/** Constructs a BaseGameActivity with default client (GamesClient). */
-	protected GooglePlayGame() {
-		super();
-		mHelper = new GameHelper(this);
-	}
+    // stores any additional scopes.
+    private String[] mAdditionalScopes;
 
-	/**
-	 * Constructs a BaseGameActivity with the requested clients.
-	 * 
-	 * @param requestedClients
-	 *            The requested clients (a combination of CLIENT_GAMES,
-	 *            CLIENT_PLUS and CLIENT_APPSTATE).
-	 */
-	protected GooglePlayGame(int requestedClients) {
-		super();
-		setRequestedClients(requestedClients);
-	}
+    protected String mDebugTag = "BaseGameActivity";
+    protected boolean mDebugLog = false;
 
-	/**
-	 * Sets the requested clients. The preferred way to set the requested
-	 * clients is via the constructor, but this method is available if for some
-	 * reason your code cannot do this in the constructor. This must be called
-	 * before onCreate in order to have any effect. If called after onCreate,
-	 * this method is a no-op.
-	 * 
-	 * @param requestedClients
-	 *            A combination of the flags CLIENT_GAMES, CLIENT_PLUS and
-	 *            CLIENT_APPSTATE, or CLIENT_ALL to request all available
-	 *            clients.
-	 */
-	protected void setRequestedClients(int requestedClients) {
-		mRequestedClients = requestedClients;
-	}
+    /** Constructs a BaseGameActivity with default client (GamesClient). */
+    protected GooglePlayGame() {
+        super();
+        mHelper = new GameHelper(this);
+    }
 
-	@Override
-	protected void onCreate(Bundle b) {
-		super.onCreate(b);
-		mHelper = new GameHelper(this);
-		mHelper.setup(this, mRequestedClients);
-	}
+    /**
+     * Constructs a BaseGameActivity with the requested clients.
+     * @param requestedClients The requested clients (a combination of CLIENT_GAMES,
+     *         CLIENT_PLUS and CLIENT_APPSTATE).
+     */
+    protected GooglePlayGame(int requestedClients) {
+        super();
+        setRequestedClients(requestedClients);
+    }
 
-	@Override
-	protected void onStart() {
-		super.onStart();
-		mHelper.onStart(this);
-	}
+    /**
+     * Sets the requested clients. The preferred way to set the requested clients is
+     * via the constructor, but this method is available if for some reason your code
+     * cannot do this in the constructor. This must be called before onCreate in order to
+     * have any effect. If called after onCreate, this method is a no-op.
+     *
+     * @param requestedClients A combination of the flags CLIENT_GAMES, CLIENT_PLUS
+     *         and CLIENT_APPSTATE, or CLIENT_ALL to request all available clients.
+     * @param additionalScopes.  Scopes that should also be requested when the auth
+     *         request is made.
+     */
+    protected void setRequestedClients(int requestedClients, String... additionalScopes) {
+        mRequestedClients = requestedClients;
+        mAdditionalScopes = additionalScopes;
+    }
 
-	@Override
-	protected void onStop() {
-		super.onStop();
-		mHelper.onStop();
-	}
+    @Override
+    protected void onCreate(Bundle b) {
+        super.onCreate(b);
+        mHelper = new GameHelper(this);
+        if (mDebugLog) {
+            mHelper.enableDebugLog(mDebugLog, mDebugTag);
+        }
+        mHelper.setup(this, mRequestedClients, mAdditionalScopes);
+    }
 
-	@Override
-	protected void onActivityResult(int request, int response, Intent data) {
-		super.onActivityResult(request, response, data);
-		mHelper.onActivityResult(request, response, data);
-	}
+    @Override
+    protected void onStart() {
+        super.onStart();
+        mHelper.onStart(this);
+    }
 
-	protected GamesClient getGamesClient() {
-		return mHelper.getGamesClient();
-	}
+    @Override
+    protected void onStop() {
+        super.onStop();
+        mHelper.onStop();
+    }
 
-	protected AppStateClient getAppStateClient() {
-		return mHelper.getAppStateClient();
-	}
+    @Override
+    protected void onActivityResult(int request, int response, Intent data) {
+        super.onActivityResult(request, response, data);
+        mHelper.onActivityResult(request, response, data);
+    }
 
-	protected PlusClient getPlusClient() {
-		return mHelper.getPlusClient();
-	}
+    protected GamesClient getGamesClient() {
+        return mHelper.getGamesClient();
+    }
 
-	protected boolean isSignedIn() {
-		return mHelper.isSignedIn();
-	}
+    protected AppStateClient getAppStateClient() {
+        return mHelper.getAppStateClient();
+    }
 
-	protected void beginUserInitiatedSignIn() {
-		mHelper.beginUserInitiatedSignIn();
-	}
+    protected PlusClient getPlusClient() {
+        return mHelper.getPlusClient();
+    }
 
-	protected void signOut() {
-		mHelper.signOut();
-	}
+    protected boolean isSignedIn() {
+        return mHelper.isSignedIn();
+    }
 
-	protected void showAlert(String title, String message) {
-		mHelper.showAlert(title, message);
-	}
+    protected void beginUserInitiatedSignIn() {
+        mHelper.beginUserInitiatedSignIn();
+    }
 
-	protected void showAlert(String message) {
-		mHelper.showAlert(message);
-	}
+    protected void signOut() {
+        mHelper.signOut();
+    }
 
-	protected void enableDebugLog(boolean enabled, String tag) {
-		mHelper.enableDebugLog(enabled, tag);
-	}
+    protected void showAlert(String title, String message) {
+        mHelper.showAlert(title, message);
+    }
 
-	protected String getInvitationId() {
-		return mHelper.getInvitationId();
-	}
+    protected void showAlert(String message) {
+        mHelper.showAlert(message);
+    }
 
-	protected void reconnectClients(int whichClients) {
-		mHelper.reconnectClients(whichClients);
-	}
+    protected void enableDebugLog(boolean enabled, String tag) {
+        mDebugLog = true;
+        mDebugTag = tag;
+        if (mHelper != null) {
+            mHelper.enableDebugLog(enabled, tag);
+        }
+    }
 
-	protected String getScopes() {
-		return mHelper.getScopes();
-	}
+    protected String getInvitationId() {
+        return mHelper.getInvitationId();
+    }
 
-	protected boolean hasSignInError() {
-		return mHelper.hasSignInError();
-	}
+    protected void reconnectClients(int whichClients) {
+        mHelper.reconnectClients(whichClients);
+    }
 
-	protected ConnectionResult getSignInError() {
-		return mHelper.getSignInError();
-	}
+    protected String getScopes() {
+        return mHelper.getScopes();
+    }
 
-	protected void setSignInMessages(String signingInMessage,
-			String signingOutMessage) {
-		mHelper.setSigningInMessage(signingInMessage);
-		mHelper.setSigningOutMessage(signingOutMessage);
-	}
+    protected String[] getScopesArray() {
+        return mHelper.getScopesArray();
+    }
+
+    protected boolean hasSignInError() {
+        return mHelper.hasSignInError();
+    }
+
+    protected GameHelper.SignInFailureReason getSignInError() {
+        return mHelper.getSignInError();
+    }
 }
